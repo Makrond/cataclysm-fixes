@@ -461,7 +461,7 @@ void game::start_game()
  u.per_cur = u.per_max;
  u.int_cur = u.int_max;
  u.dex_cur = u.dex_max;
- nextspawn = int(turn);	
+ nextspawn = int(turn);
  temperature = 65; // Springtime-appropriate?
 
 // Put some NPCs in there!
@@ -497,12 +497,12 @@ void game::create_starting_npcs()
  tmp.attitude = NPCATT_NULL;
  tmp.mission = NPC_MISSION_SHELTER;
  tmp.chatbin.first_topic = TALK_SHELTER;
- tmp.chatbin.missions.push_back( 
+ tmp.chatbin.missions.push_back(
      reserve_random_mission(ORIGIN_OPENER_NPC, om_location(), tmp.id) );
 
  active_npc.push_back(tmp);
 }
- 
+
 
 // MAIN GAME LOOP
 // Returns true if game is over (death, saved, quit, etc)
@@ -664,7 +664,7 @@ void game::update_skills()
 //	6	 128
 //	7+	  64
  for (int i = 0; i < num_skill_types; i++) {
-  int tmp = u.sklevel[i] > 7 ? 7 : u.sklevel[i];
+  int tmp = u.sklevel[i] > 4 ? 4 : u.sklevel[i];
   if (u.sklevel[i] > 0 && turn % (8192 / int(pow(2, double(tmp - 1)))) == 0 &&
       (( u.has_trait(PF_FORGETFUL) && one_in(3)) ||
        (!u.has_trait(PF_FORGETFUL) && one_in(4))   )) {
@@ -796,7 +796,7 @@ void game::process_activity()
              skill_name(u.activity.index).c_str(), u.sklevel[u.activity.index]);
     }
     break;
-    
+
    case ACT_VEHICLE:
     complete_vehicle (this);
     break;
@@ -957,7 +957,7 @@ void game::assign_mission(int id)
  mission *miss = find_mission(id);
  (m_s.*miss->type->start)(this, miss);
 }
- 
+
 int game::reserve_mission(mission_id type, int npc_id)
 {
  mission tmp = mission_types[type].create(this, npc_id);
@@ -1657,7 +1657,7 @@ bool game::load_master()
   if (fin.peek() == '\n')
    fin.get(junk); // Chomp that pesky endline
  }
- 
+
  fin.close();
  return true;
 }
@@ -2290,7 +2290,7 @@ void game::list_missions()
   for (int i = 0; i < umissions.size(); i++) {
    mission *miss = find_mission(umissions[i]);
    nc_color col = c_white;
-   if (i == u.active_mission && tab == 0) 
+   if (i == u.active_mission && tab == 0)
     col = c_ltred;
    if (selection == i)
     mvwprintz(w_missions, 3 + i, 0, hilite(col), miss->name().c_str());
@@ -2663,7 +2663,7 @@ unsigned char game::light_level()
  int flashlight = u.active_item_charges(itm_flashlight_on);
  //int light = u.light_items();
  if (ret < 10 && flashlight > 0) {
-/* additive so that low battery flashlights still increase the light level 
+/* additive so that low battery flashlights still increase the light level
 	rather than decrease it 						*/
   ret += flashlight;
   if (ret > 10)
@@ -2746,7 +2746,7 @@ faction* game::random_evil_faction()
 bool game::sees_u(int x, int y, int &t)
 {
  return (!u.has_active_bionic(bio_cloak) &&
-         !u.has_artifact_with(AEP_INVISIBLE) && 
+         !u.has_artifact_with(AEP_INVISIBLE) &&
          m.sees(x, y, u.posx, u.posy, light_level(), t));
 }
 
@@ -2927,9 +2927,9 @@ void game::mon_info()
 // 5 4 3	8 is used for local monsters (for when we explain them below)
  mvwprintz(w_moninfo,  0,  0, (unique_types[7].empty() ?
            c_dkgray : (dangerous[7] ? c_ltred : c_ltgray)), "NW:");
- mvwprintz(w_moninfo,  0, 15, (unique_types[0].empty() ? 
+ mvwprintz(w_moninfo,  0, 15, (unique_types[0].empty() ?
            c_dkgray : (dangerous[0] ? c_ltred : c_ltgray)), "North:");
- mvwprintz(w_moninfo,  0, 33, (unique_types[1].empty() ? 
+ mvwprintz(w_moninfo,  0, 33, (unique_types[1].empty() ?
            c_dkgray : (dangerous[1] ? c_ltred : c_ltgray)), "NE:");
  mvwprintz(w_moninfo,  1,  0, (unique_types[6].empty() ?
            c_dkgray : (dangerous[6] ? c_ltred : c_ltgray)), "West:");
@@ -3080,7 +3080,13 @@ void game::monmove()
  for (int i = 0; i < z.size(); i++) {
   if (i < 0 || i > z.size())
    debugmsg("Moving out of bounds monster! i %d, z.size() %d", i, z.size());
+    int tries=0;
   while (!z[i].dead && !z[i].can_move_to(m, z[i].posx, z[i].posy)) {
+      if (tries > 200) {
+          debugmsg("Couldn't figure out a way to move %s, killing...", z[i].name().c_str());
+          z[i].dead = true;
+          break;
+      }
 // If we can't move to our current position, assign us to a new one
    if (debugmon)
     debugmsg("%s can't move to its location! (%d:%d), %s", z[i].name().c_str(),
@@ -3098,8 +3104,11 @@ void game::monmove()
      }
     }
    }
-   if (!okay)
+   tries++;
+   if (!okay) {
     z[i].dead = true;
+    break;
+   }
     //build_monmap();
   }
 
@@ -3239,7 +3248,7 @@ void game::check_warmth()
   add_msg("Your body is cold.");
   u.add_disease(DI_COLD, abs(warmth), this);
  } else if (warmth >= 12) {
-  add_msg("Your body is too hot."); 
+  add_msg("Your body is too hot.");
   u.add_disease(DI_HOT, warmth * 2, this);
  }
  // HANDS
@@ -3380,7 +3389,7 @@ void game::add_footstep(int x, int y, int volume, int distance)
 void game::draw_footsteps()
 {
  for (int i = 0; i < footsteps.size(); i++) {
-  mvwputch(w_terrain, SEEY + footsteps[i].y - u.posy, 
+  mvwputch(w_terrain, SEEY + footsteps[i].y - u.posy,
            SEEX + footsteps[i].x - u.posx, c_yellow, '?');
  }
  footsteps.clear();
@@ -3562,7 +3571,7 @@ void game::use_computer(int x, int y)
   debugmsg("Tried to use computer at (%d, %d) - none there", x, y);
   return;
  }
- 
+
  used->use(this);
 
  refresh_all();
@@ -3811,7 +3820,7 @@ void game::explode_mon(int index)
    for (int i = 0; i < num_chunks; i++) {
     int tarx = posx + rng(-3, 3), tary = posy + rng(-3, 3);
     std::vector<point> traj = line_to(posx, posy, tarx, tary, 0);
- 
+
     bool done = false;
     for (int j = 0; j < traj.size() && !done; j++) {
      tarx = traj[j].x;
@@ -6342,13 +6351,13 @@ void game::vertical_move(int movez, bool force)
    stairy = u.posy;
   }
  }
- 
+
  bool replace_monsters = false;
 // Replace the stair monsters if we just came back
  if (abs(monstairx - levx) <= 1 && abs(monstairy - levy) <= 1 &&
      monstairz == levz + movez)
   replace_monsters = true;
- 
+
  if (!force) {
   monstairx = levx;
   monstairy = levy;
@@ -6547,7 +6556,7 @@ void game::update_map(int &x, int &y)
  npc temp;
  for (int i = 0; i < cur_om.npcs.size(); i++) {
   if (rl_dist(levx + int(MAPSIZE / 2), levy + int(MAPSIZE / 2),
-              cur_om.npcs[i].mapx, cur_om.npcs[i].mapy) <= 
+              cur_om.npcs[i].mapx, cur_om.npcs[i].mapy) <=
               int(MAPSIZE / 2) + 1) {
    int dx = cur_om.npcs[i].mapx - levx, dy = cur_om.npcs[i].mapy - levy;
    if (debugmon)
@@ -7013,7 +7022,7 @@ void game::msg_buffer()
   for (i = 1; i <= 20 && line <= 23 && offset + i <= messages.size(); i++) {
    game_message *mtmp = &(messages[ messages.size() - (offset + i) ]);
    calendar timepassed = turn - mtmp->turn;
-   
+
    int tp = int(timepassed);
    nc_color col = (tp <=  2 ? c_ltred : (tp <=  7 ? c_white :
                    (tp <= 12 ? c_ltgray : c_dkgray)));
@@ -7056,7 +7065,7 @@ void game::msg_buffer()
 
   ch = input();
   int dirx = 0, diry = 0;
-   
+
   get_direction(this, dirx, diry, ch);
   if (diry == -1 && offset > 0)
    offset--;
